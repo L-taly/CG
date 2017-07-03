@@ -110,11 +110,12 @@ function renderDepth(canvas, scene, camera, maxDepth){
             var ray = camera.generateRay(sx, sy);
             var result = scene.intersect(ray);
             if (result.geometry) {
-                var depth = 255 - Math.min((result.distance / maxDepth) * 255, 255);
-                pixels[i    ] = depth;
-                pixels[i + 1] = depth;
-                pixels[i + 2] = depth;
+                if (result.geometry) {
+                pixels[i    ] = (result.normal.x + 1) * 128;
+                pixels[i + 1] = (result.normal.y + 1) * 128;
+                pixels[i + 2] = (result.normal.z + 1) * 128;
                 pixels[i + 3] = 255;
+            }
             }
             i += 4;
         }
