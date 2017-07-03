@@ -66,6 +66,29 @@ Sphere.prototype = {
     }
 };
 
+//plane = function (norm, offset) {
+//    this.norm = norm;
+//    this.offset = offset
+//}
+
+//plane.prototype = {
+//    copy: function () {
+//        return new plane(this.norm.copy(), this.offset);
+//    },
+
+//    intersect: function (ray) {
+//        var denom = norm.dot(ray.direction);
+//        if (denom <= 0) {
+//            var result = new IntersectResult();
+//            result.geometry = this;
+//            result.distance = (norm.dot(ray.start) + offset) / (-denom);
+//            result.position = ray.getPoint(result.distance);
+//            result.normal = this.norm;
+//        }
+//        return IntersectResult.noHit;
+//    }
+//};
+
 IntersectResult = function() {
     this.geometry = null;
     this.distance = 0;
@@ -91,7 +114,52 @@ PerspectiveCamera.prototype = {
     }
 };
 
-function renderDepth(canvas, scene, camera, maxDepth){
+Color = function(r, g, b) { this.r = r; this.g = g; this.b = b };
+ 
+Color.prototype = {
+    copy : function() { return new Color(this.r, this.g, this.b); },
+    add : function(c) { return new Color(this.r + c.r, this.g + c.g, this.b + c.b); },
+    multiply : function(s) { return new Color(this.r * s, this.g * s, this.b * s); },
+    modulate : function(c) { return new Color(this.r * c.r, this.g * c.g, this.b * c.b); }
+};
+ 
+Color.black = new Color(0, 0, 0);
+Color.white = new Color(1, 1, 1);
+Color.red = new Color(1, 0, 0);
+Color.green = new Color(0, 1, 0);
+Color.blue = new Color(0, 0, 1);
+
+CheckerMaterial = function(scale, reflectiveness) { this.scale = scale; this.reflectiveness = reflectiveness; };
+ 
+CheckerMaterial.prototype = {
+    sample : function(ray, position, normal) {
+        return Math.abs((Math.floor(position.x * 0.1) + Math.floor(position.z * this.scale)) % 2) < 1 ? Color.black : Color.white;
+    }
+};
+
+PhongMaterial = function(diffuse, specular, shininess, reflectiveness) {
+    this.diffuse = diffuse;
+    this.specular = specular;
+    this.shininess = shininess;
+    this.reflectiveness = reflectiveness;
+};
+ 
+// global temp
+var lightDir = new Vector3(1, 1, 1).normalize();
+var lightColor = Color.white;
+ 
+PhongMaterial.prototype = {
+    sample: function(ray, position, normal) {
+        var NdotL = normal.dot(lightDir);
+        var H = (lightDir.subtract(ray.direction)).normalize();
+        var NdotH = normal.dot(H);
+        var diffuseTerm = this.diffuse.multiply(Math.max(NdotL, 0));
+        var specularTerm = this.specular.multiply(Math.pow(Math.max(NdotH, 0), this.shininess));
+        return lightColor.modulate(diffuseTerm.add(specularTerm));
+    }
+};
+
+function rayTrace(canvas, scene, camera){
     var ctx = canvas.getContext("2d");
     var w = canvas.attributes.width.value;
     var h = canvas.attributes.height.value;
@@ -101,7 +169,6 @@ function renderDepth(canvas, scene, camera, maxDepth){
     var pixels = imgdata.data;
     scene.initialize();
     camera.initialize();
- 
     var i = 0;
     for (var y = 0; y < h; y++) {
         var sy = 1 - y / h;
@@ -109,22 +176,26 @@ function renderDepth(canvas, scene, camera, maxDepth){
             var sx = x / w;            
             var ray = camera.generateRay(sx, sy);
             var result = scene.intersect(ray);
-            if (result.geometry) {
-                if (result.geometry) {
-                pixels[i    ] = (result.normal.x + 1) * 128;
-                pixels[i + 1] = (result.normal.y + 1) * 128;
-                pixels[i + 2] = (result.normal.z + 1) * 128;
+            if (result.geometry != null) {
+                var color = result.geometry.material.sample(ray, result.position, result.normal);
+                pixels[i] = color.r * 255;
+                pixels[i + 1] = color.g * 255;
+                pixels[i + 2] = color.b * 255;
                 pixels[i + 3] = 255;
-            }
             }
             i += 4;
         }
     }
  
     ctx.putImageData(imgdata, 0, 0);
-}
-renderDepth(
+};
+//var plane = new plane(new Vector3(0, 1, 0), 0);
+var sphere1 = new Sphere(new Vector3(-10, 10, -10), 10);
+var sphere2 = new Sphere(new Vector3(10, 10, -10), 10);
+//plane.material = new CheckerMaterial(0.1);
+sphere1.material = new PhongMaterial(Color.red, Color.white, 16);
+sphere2.material = new PhongMaterial(Color.blue, Color.white, 16);
+rayTrace(
     document.getElementById('testCanvas'), 
-    new Sphere(new Vector3(0, 10, -10), 10),
-    new PerspectiveCamera(new Vector3(0, 10, 10), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 90),
-    20);
+    sphere2,
+    new PerspectiveCamera(new Vector3(0, 5, 15), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 90));
