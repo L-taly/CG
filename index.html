@@ -1,29 +1,40 @@
+
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>Hello Word</title>
-    </head>
-    <body>
-        <canvas width="256" height="256" id="testCanvas"></canvas>
-        <script>
-            var canvas = document.getElementById("testCanvas");
-            var ctx = canvas.getContext("2d");
-            var w = canvas.attributes.width.value;
-            var h = canvas.attributes.height.value;
-            ctx.fillStyle = "rgb(0,0,0)";
-            ctx.fillRect(0, 0, w, h);
-            var imgdata = ctx.getImageData(0, 0, w, h);
-            var pixels = imgdata.data;
-            var i = 0;
-            for(var y = 0; y < h; y++)
-                for (var x = 0; x < w; x++){
-                pixels[i++] = x / w *255;
-                pixels[i++] = y / w *255;
-                pixels[i++] = 0;
-                pixels[i++] = 255;
-                }
-            ctx.putImageData(imgdata, 0, 0);
-        </script>
-    </body>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" >
+<title>2D Sierpinski Gasket</title>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+
+void
+main()
+{
+	gl_PointSize = 1.0;
+    gl_Position = vPosition;
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+precision mediump float;
+
+void
+main()
+{
+    gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );
+}
+</script>
+
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders1.js"></script>
+<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="gasket1.js"></script>
+</head>
+
+<body>
+<canvas id="gl-canvas" width="512" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+</body>
 </html>

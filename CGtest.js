@@ -1,9 +1,7 @@
-var canv = document.createElement("canvas");
-canv.width = 600;
-canv.height = 600;
-document.body.appendChild(canv);
-var w = canv.attributes.width.value;
-var h = canv.attributes.height.value;
+var canvas = document.getElementById("testCanvas");
+var ctx = canvas.getContext("2d");
+var w = canvas.attributes.width.value;
+var h = canvas.attributes.height.value;
 ctx.fillStyle = "rgb(0,0,0)";
 ctx.fillRect(0, 0, w, h);
 var imgdata = ctx.getImageData(0, 0, w, h);
