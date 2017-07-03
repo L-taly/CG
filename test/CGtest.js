@@ -43,19 +43,19 @@ Sphere.prototype = {
     },
 
     initialize: function(){
-        this.sqrRaius = this.radius * this.radius
+        this.sqrRadius = this.radius * this.radius;
     },
 
-    Intersect: function(ray){
+    intersect: function(ray){
         var v = ray.origin.subtract(this.center);
-        var a0 = v.sqrLength() - this.sqrRaius;
+        var a0 = v.sqrLength() - this.sqrRadius;
         var DdotV = ray.direction.dot(v);
 
         if(DdotV <= 0){
             var discr = DdotV * DdotV - a0;
             if(discr >= 0){
                 var result = new IntersectResult();
-                result. geometry = this;
+                result.geometry = this;
                 result.distance = -DdotV - Math.sqrt(discr);
                 result.position = ray.getPoint(result.distance);
                 result.normal = result.position.subtract(this.center).normalize();
@@ -66,28 +66,64 @@ Sphere.prototype = {
     }
 };
 
-IntersectResult = function(){
+IntersectResult = function() {
     this.geometry = null;
     this.distance = 0;
     this.position = Vector3.zero;
     this.normal = Vector3.zero;
 };
+ 
 IntersectResult.noHit = new IntersectResult();
 
-PerspectiveCamera = function(eye, front, up, fov){
-    this.eye = eye; this.front = front; this.refUp = up; this.fov = fov;
-};
-
+PerspectiveCamera = function(eye, front, up, fov) { this.eye = eye; this.front = front; this.refUp = up; this.fov = fov; };
+ 
 PerspectiveCamera.prototype = {
-    initialize: function(){
+    initialize : function() {
         this.right = this.front.cross(this.refUp);
         this.up = this.right.cross(this.front);
         this.fovScale = Math.tan(this.fov * 0.5 * Math.PI / 180) * 2;
     },
-
-    generateRay: function(x,y){
-        var r = this.right.multiply((y - 0.5) * this.fovScale);
+ 
+    generateRay : function(x, y) {
+        var r = this.right.multiply((x - 0.5) * this.fovScale);
         var u = this.up.multiply((y - 0.5) * this.fovScale);
         return new Ray3(this.eye, this.front.add(r).add(u).normalize());
     }
 };
+
+function renderDepth(canvas, scene, camera, maxDepth){
+    var ctx = canvas.getContext("2d");
+    var w = canvas.attributes.width.value;
+    var h = canvas.attributes.height.value;
+    ctx.fillStyle = "rgb(0,0,0)";
+    ctx.fillRect(0, 0, w, h);
+    var imgdata = ctx.getImageData(0, 0, w, h);
+    var pixels = imgdata.data;
+    scene.initialize();
+    camera.initialize();
+ 
+    var i = 0;
+    for (var y = 0; y < h; y++) {
+        var sy = 1 - y / h;
+        for (var x = 0; x < w; x++) {
+            var sx = x / w;            
+            var ray = camera.generateRay(sx, sy);
+            var result = scene.intersect(ray);
+            if (result.geometry) {
+                var depth = 255 - Math.min((result.distance / maxDepth) * 255, 255);
+                pixels[i    ] = depth;
+                pixels[i + 1] = depth;
+                pixels[i + 2] = depth;
+                pixels[i + 3] = 255;
+            }
+            i += 4;
+        }
+    }
+ 
+    ctx.putImageData(imgdata, 0, 0);
+}
+renderDepth(
+    document.getElementById('testCanvas'), 
+    new Sphere(new Vector3(0, 10, -10), 10),
+    new PerspectiveCamera(new Vector3(0, 10, 10), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 90),
+    20);
